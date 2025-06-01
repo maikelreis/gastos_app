@@ -1,10 +1,11 @@
 import requests
+import telegram
+from io import BytesIO
 from db import get_despesas_semana
 
-TELEGRAM_TOKEN = '7935477704:AAHI81vaEfaiZEGftm5oO8ZwxNP1BTKGOw8'
-TELEGRAM_CHAT_ID = '-4712297495'
 
-def enviar_relatorio_telegram():
+
+def enviar_relatorio_telegram(TELEGRAM_TOKEN,TELEGRAM_CHAT_ID):
     despesas = get_despesas_semana()
     if not despesas:
         return
@@ -18,3 +19,11 @@ def enviar_relatorio_telegram():
         f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
         data={"chat_id": TELEGRAM_CHAT_ID, "text": msg, "parse_mode": "Markdown"}
     )
+
+def send_plot_to_telegram(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, fig, caption=""):
+    bot = telegram.Bot(token=TELEGRAM_TOKEN)
+    bio = BytesIO()
+    bio.name = 'plot.png'
+    fig.savefig(bio, format='png')
+    bio.seek(0)
+    bot.send_photo(chat_id=TELEGRAM_CHAT_ID, photo=bio, caption=caption) 
