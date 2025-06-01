@@ -32,7 +32,7 @@ elif menu == 'Lançar Gastos':
         add_despesa(cat_id,valor,data_gasto.strftime("%Y-%m-%d"))
         st.success("Gasto Registrado")
 
-elif menu == "Relatório Semanal":
+elif menu == "Relatório":
     filtro = st.radio("Filtro para Gráfico de Pizza", ["Semana", "Mês"])
 
     # 1 - Pizza por categoria
