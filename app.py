@@ -5,7 +5,7 @@ from datetime import date
 init_db()
 st.title("💰 Controle de Gastos")
 
-menu = st.sidebar.selectbox('menu',['Adicionar Categoria','Lançar Gastos'])
+menu = st.sidebar.selectbox('menu',['Lançar Gastos','Adicionar Categoria','Relatório'])
 
 if menu == 'Adicionar Categoria':
     nome = st.text_input('Nome da Categoria')
