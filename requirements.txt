@@ -1,1 +1,7 @@
 streamlit
+schedule
+requests
+seaborn
+python-telegram-bot
+matplotlib
+pandas
