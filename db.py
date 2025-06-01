@@ -112,3 +112,17 @@ def get_despesas_semana():
     result = c.fetchall()
     conn.close()
     return result
+
+def atualizar_categoria(novo_nome,novo_limite,cat_id):
+    conn = sqlite3.connect("gastos.db")
+    cur = conn.cursor()
+    cur.execute("UPDATE categorias SET nome = ?, limite = ? WHERE id = ?", (novo_nome, novo_limite, cat_id))
+    conn.commit()
+    conn.close()
+
+def remover_categoria(cat_del_id):
+    conn = sqlite3.connect("gastos.db")
+    cur = conn.cursor()
+    cur.execute("DELETE FROM categorias WHERE id = ?", (cat_del_id,))
+    conn.commit()
+    conn.close()

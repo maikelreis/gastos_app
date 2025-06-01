@@ -1,5 +1,5 @@
 import streamlit as st
-from db import init_db, add_categoria, get_categorias, add_despesa
+from db import init_db, add_categoria, get_categorias, add_despesa,atualizar_categoria,remover_categoria
 from db import get_despesas_por_categoria, get_despesas_por_semana_ano, get_comparativo_semanal, get_despesas_com_limite
 from datetime import date
 import matplotlib.pyplot as plt
@@ -9,7 +9,7 @@ import pandas as pd
 init_db()
 st.title("💰 Controle de Gastos")
 
-menu = st.sidebar.selectbox('menu',['Lançar Gastos','Adicionar Categoria','Relatórios'])
+menu = st.sidebar.selectbox('menu',['Lançar Gastos','Adicionar Categoria','Editar Categorias','Relatórios'])
 
 if menu == 'Adicionar Categoria':
     nome = st.text_input('Nome da Categoria')
@@ -79,3 +79,26 @@ elif menu == "Relatórios":
         st.pyplot(fig4)
     else:
         st.info("Sem dados para essa categoria.")
+
+elif menu == "Editar Categorias":
+    st.title("Editar Categorias")
+    categorias = get_categorias()
+    df = pd.DataFrame(categorias, columns=["ID", "Nome", "Limite"])
+    st.dataframe(df)
+
+    st.subheader("Atualizar Categoria")
+    cat_id = st.selectbox("Selecione a categoria", options=[c[0] for c in categorias], format_func=lambda x: next(c[1] for c in categorias if c[0] == x))
+    novo_nome = st.text_input("Novo nome", value=next(c[1] for c in categorias if c[0] == cat_id))
+    novo_limite = st.number_input("Novo limite", min_value=0.0, value=next(c[2] for c in categorias if c[0] == cat_id))
+
+    if st.button("Atualizar"):
+        atualizar_categoria(novo_nome,novo_limite,cat_id)        
+        st.success("Categoria atualizada com sucesso!")
+        st.experimental_rerun()
+
+    st.subheader("Remover Categoria")
+    cat_del_id = st.selectbox("Categoria para remover", options=[c[0] for c in categorias], format_func=lambda x: next(c[1] for c in categorias if c[0] == x), key="del")
+    if st.button("Remover"):
+        remover_categoria(cat_del_id)
+        st.success("Categoria removida com sucesso!")
+        st.experimental_rerun()
