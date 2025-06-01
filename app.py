@@ -9,7 +9,7 @@ import pandas as pd
 init_db()
 st.title("💰 Controle de Gastos")
 
-menu = st.sidebar.selectbox('menu',['Lançar Gastos','Adicionar Categoria','Relatório'])
+menu = st.sidebar.selectbox('menu',['Lançar Gastos','Adicionar Categoria','Relatórios'])
 
 if menu == 'Adicionar Categoria':
     nome = st.text_input('Nome da Categoria')
@@ -32,7 +32,7 @@ elif menu == 'Lançar Gastos':
         add_despesa(cat_id,valor,data_gasto.strftime("%Y-%m-%d"))
         st.success("Gasto Registrado")
 
-elif menu == "Relatório Semanal":
+elif menu == "Relatórios":
     filtro = st.radio("Filtro para Gráfico de Pizza", ["Semana", "Mês"])
 
     # 1 - Pizza por categoria
