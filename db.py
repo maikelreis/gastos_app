@@ -14,7 +14,7 @@ def init_db():
                     id INTEGER PRIMARY KEY,
                     categoria_id INTEGER,
                     valor REAL,
-                    data DATE,
+                    data TEXT,
                     FOREIGN KEY(categoria_id) REFERENCES categorias(id)
                 )''')
     conn.commit()
@@ -56,5 +56,3 @@ def get_despesas_semana():
     result = c.fetchall()
     conn.close()
     return result
-
-add_categoria('Mercado','4000')
