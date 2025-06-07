@@ -22,17 +22,17 @@ def init_db():
     conn.commit()
     conn.close()
 
-def add_categoria(nome, limite):
+def add_categoria(categoria_id, nome, limite):
     conn = sqlite3.connect(DB)
     cur = conn.cursor()
-    cur.execute("INSERT INTO categorias (nome, limite) VALUES (?, ?)", (nome, limite))
+    cur.execute("INSERT INTO categorias (categoria_id, nome, limite) VALUES (?, ?)", (categoria_id, nome, limite))
     conn.commit()
     conn.close()
 
 def get_categorias():
     conn = sqlite3.connect(DB)
     cur = conn.cursor()
-    cur.execute("SELECT * FROM categorias")
+    cur.execute("SELECT id, nome FROM categorias")
     categorias = cur.fetchall()
     conn.close()
     return categorias
