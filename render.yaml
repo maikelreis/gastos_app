@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: gastos-app-reactpy
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        value: '7935477704:AAHI81vaEfaiZEGftm5oO8ZwxNP1BTKGOw8'
+      - key: TELEGRAM_CHAT_ID
+        value: '-4712297495'

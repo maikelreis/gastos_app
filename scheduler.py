@@ -6,8 +6,6 @@ from datetime import datetime, timedelta
 from notify import enviar_relatorio_telegram,send_plot_to_telegram
 from db import get_despesas_por_categoria, get_comparativo_semanal
 
-TELEGRAM_TOKEN = '7935477704:AAHI81vaEfaiZEGftm5oO8ZwxNP1BTKGOw8'
-TELEGRAM_CHAT_ID = '-4712297495'
 
 def gerar_grafico_pizza():
     df = get_despesas_por_categoria(periodo="semana")
