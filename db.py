@@ -32,7 +32,7 @@ def add_categoria(categoria_id, nome, limite):
 def get_categorias():
     conn = sqlite3.connect(DB)
     cur = conn.cursor()
-    cur.execute("SELECT id, nome FROM categorias")
+    cur.execute("SELECT * FROM categorias")
     categorias = cur.fetchall()
     conn.close()
     return categorias
@@ -113,16 +113,16 @@ def get_despesas_semana():
     conn.close()
     return result
 
-def atualizar_categoria(novo_nome,novo_limite,cat_id):
+def update_categoria(cat_id,novo_nome,novo_limite):
     conn = sqlite3.connect("gastos.db")
     cur = conn.cursor()
     cur.execute("UPDATE categorias SET nome = ?, limite = ? WHERE id = ?", (novo_nome, novo_limite, cat_id))
     conn.commit()
     conn.close()
 
-def remover_categoria(cat_del_id):
+def delete_categoria(cat_id):
     conn = sqlite3.connect("gastos.db")
     cur = conn.cursor()
-    cur.execute("DELETE FROM categorias WHERE id = ?", (cat_del_id,))
+    cur.execute("DELETE FROM categorias WHERE id = ?", (cat_id,))
     conn.commit()
     conn.close()

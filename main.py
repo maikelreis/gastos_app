@@ -2,6 +2,7 @@ from reactpy import component, html, run, use_state, use_effect
 from reactpy.backend.fastapi import configure
 from fastapi import FastAPI
 from db import get_categorias, add_despesa
+from db import update_categoria, delete_categoria
 from datetime import datetime
 import uvicorn
 
@@ -30,10 +31,9 @@ def AdicionarGasto():
     selected_cat, set_selected_cat = use_state("")
     valor, set_valor = use_state("")
     data, set_data = use_state("")
-    msg, set_msg = use_state("")
+    mensagem, set_mensagem = use_state("")
 
     def carregar_categorias():
-        
         try:
             cats = get_categorias()
             if cats:
@@ -42,63 +42,106 @@ def AdicionarGasto():
                     set_selected_cat(str(cats[0][0]))
         except Exception as e:
             print("❌ Erro ao carregar categorias:", e)
-        return
 
     @use_effect
     def on_mount():
         carregar_categorias()
-        return  # <- necessário para não tentar retornar função de cleanup
+        return
 
-    def handle_select_change(event):
-        print("📥 Categoria selecionada:", event["target"]["value"])
-        set_selected_cat(event["target"]["value"])
-
-    def handle_valor_change(event):
-        print("💸 Valor digitado:", event["target"]["value"])
-        set_valor(event["target"]["value"])
-
-    def handle_data_change(event):
-        print("📅 Data escolhida:", event["target"]["value"])
-        set_data(event["target"]["value"])
-
-    def salvar_gasto(event):
-        try:
-            if not selected_cat or not valor:
-                set_msg("⚠️ Preencha todos os campos.")
-                return
-            add_despesa(int(selected_cat), float(valor), data)
-            set_msg("✅ Gasto salvo com sucesso!")
-            set_valor("")
-        except Exception as e:
-            set_msg(f"❌ Erro ao salvar: {e}")
+    def salvar(event=None):
+        if not selected_cat or not valor:
+            set_mensagem("⚠️ Preencha todos os campos!")
+            return
+        add_despesa(int(selected_cat),float(valor), data)
+        set_mensagem("✅ Gasto adicionado com sucesso!")
+        set_valor("")
+        set_data("")
 
     return html.div(
         html.h2("Adicionar Gasto"),
-        html.label("Categoria:"),
-        html.select(
-            {"value": selected_cat, "onChange": handle_select_change},
-            [html.option({"value": str(cid)}, nome) for cid, nome in categorias]
-        ) if categorias else html.p("Nenhuma categoria cadastrada."),
-        html.br(),
+        html.div(
+            html.label("Categoria:"),
+            html.select(
+                {
+                    "value": selected_cat,
+                    "onChange": lambda e: set_selected_cat(e["target"]["value"])
+                },
+                *[html.option({"value": str(cat[0])}, cat[1]) for cat in categorias]
+            ),
+            html.br(),
+            html.label("Valor:"),
+            html.input({"type": "number", "value": valor, "onChange": lambda e: set_valor(e["target"]["value"])}),
+            html.br(),
+            html.label("Data:"),
+            html.input({"type": "Date", "value": data, "onChange": lambda e: set_data(e["target"]["value"])}),
+            html.br(),
+            html.button({"onClick": salvar}, "Salvar"),
+            html.p(mensagem)
+        )
+    )
 
-        html.label("Valor:"),
-        html.input({
+@component
+def LinhaCategoria(cat, on_update, on_delete):
+    cat_id, nome, limite = cat
+    nome_state, set_nome_state = use_state(nome)
+    limite_state, set_limite_state = use_state(str(limite))
+
+    return html.tr(
+        html.td(html.input({
+            "type": "text",
+            "value": nome_state,
+            "onChange": lambda e: set_nome_state(e["target"]["value"])
+        })),
+        html.td(html.input({
             "type": "number",
-            "value": valor,
-            "onChange": handle_valor_change,
-        }),
-        html.br(),
+            "value": limite_state,
+            "onChange": lambda e: set_limite_state(e["target"]["value"])
+        })),
+        html.td(
+            html.button({"onClick": lambda *_: on_update(cat_id, nome_state, float(limite_state))}, "Salvar"),
+            html.button({"onClick": lambda *_: on_delete(cat_id)}, "Remover")
+        )
+    )
 
-        html.label("Data:"),
-        html.input({
-            "type": "date",
-            "value": data,
-            "onChange": handle_data_change,
-        }),
-        html.br(),
+@component
+def EditarCategorias():
+    categorias, set_categorias = use_state([])
+    msg, set_msg = use_state("")
 
-        html.button({"onClick": salvar_gasto}, "Salvar Gasto"),
+    def carregar_categorias():
+        set_categorias(get_categorias())
+
+    @use_effect
+    def on_mount():
+        carregar_categorias()
+        return
+
+    def atualizar_categoria(cat_id, nome, limite):
+        update_categoria(cat_id, nome, limite)
+        set_msg(f"✅ Categoria {nome} atualizada!")
+        carregar_categorias()
+
+    def remover_categoria(cat_id):
+        delete_categoria(cat_id)
+        set_msg("🗑️ Categoria removida.")
+        carregar_categorias()
+
+    return html.div(
+        html.h2("Editar Categorias"),
         html.p(msg),
+        html.table(
+            {"border": "1", "cellPadding": "5"},
+            html.thead(
+                html.tr(
+                    html.th("Nome"),
+                    html.th("Limite"),
+                    html.th("Ações")
+                )
+            ),
+            html.tbody(
+                [LinhaCategoria(cat, atualizar_categoria, remover_categoria) for cat in categorias]
+            )
+        )
     )
 
 @component
@@ -111,7 +154,7 @@ def App():
         elif page == "adicionar":
             return AdicionarGasto()
         elif page == "editar":
-            return html.h2("Editar Categorias - Em construção")
+            return EditarCategorias()
         elif page == "relatorios":
             return html.h2("Relatórios - Em construção")
         return html.h2("Página não encontrada")
