@@ -107,6 +107,8 @@ def LinhaCategoria(cat, on_update, on_delete):
 def EditarCategorias():
     categorias, set_categorias = use_state([])
     msg, set_msg = use_state("")
+    novo_nome, set_novo_nome = use_state("")
+    novo_limite, set_novo_limite = use_state("")
 
     def carregar_categorias():
         set_categorias(get_categorias())
@@ -125,10 +127,42 @@ def EditarCategorias():
         delete_categoria(cat_id)
         set_msg("🗑️ Categoria removida.")
         carregar_categorias()
+    
+    def salvar_categoria(event=None):
+        if not novo_nome or not novo_limite:
+            set_msg("⚠️ Preencha nome e limite.")
+            return
+        try:
+            from db import add_categoria
+            add_categoria(novo_nome, float(novo_limite))
+            set_msg(f"✅ Categoria '{novo_nome}' adicionada.")
+            set_novo_nome("")
+            set_novo_limite("")
+            carregar_categorias()
+        except Exception as e:
+            set_msg(f"❌ Erro ao adicionar categoria: {e}")
 
     return html.div(
         html.h2("Editar Categorias"),
         html.p(msg),
+
+        html.h3("Adicionar nova categoria"),
+        html.div(
+            html.input({
+                "type": "text",
+                "placeholder": "Nome da categoria",
+                "value": novo_nome,
+                "onChange": lambda e: set_novo_nome(e["target"]["value"])
+            }),
+            html.input({
+                "type": "number",
+                "placeholder": "Limite",
+                "value": novo_limite,
+                "onChange": lambda e: set_novo_limite(e["target"]["value"])
+            }),
+            html.button({"onClick": salvar_categoria}, "Salvar Categoria")
+        ),
+
         html.table(
             {"border": "1", "cellPadding": "5"},
             html.thead(

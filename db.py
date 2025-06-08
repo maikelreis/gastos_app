@@ -22,12 +22,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-def add_categoria(categoria_id, nome, limite):
-    conn = sqlite3.connect(DB)
-    cur = conn.cursor()
-    cur.execute("INSERT INTO categorias (categoria_id, nome, limite) VALUES (?, ?)", (categoria_id, nome, limite))
-    conn.commit()
-    conn.close()
 
 def get_categorias():
     conn = sqlite3.connect(DB)
@@ -124,5 +118,12 @@ def delete_categoria(cat_id):
     conn = sqlite3.connect("gastos.db")
     cur = conn.cursor()
     cur.execute("DELETE FROM categorias WHERE id = ?", (cat_id,))
+    conn.commit()
+    conn.close()
+
+def add_categoria(nome, limite):
+    conn = sqlite3.connect("gastos.db")
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO categorias (nome, limite) VALUES (?, ?)", (nome, limite))
     conn.commit()
     conn.close()
