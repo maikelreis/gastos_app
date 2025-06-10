@@ -23,7 +23,7 @@ def init_db():
     conn.close()
 
 def get_despesas():
-    with sqlite3.connect("gastos.db") as conn:
+    with sqlite3.connect(DB) as conn:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT d.id, c.nome, d.valor, d.data
@@ -104,7 +104,7 @@ def get_despesas_com_limite(filtro_categoria):
 
 def get_despesas_semana():
     from datetime import datetime, timedelta
-    conn = sqlite3.connect("gastos.db")
+    conn = sqlite3.connect(DB)
     c = conn.cursor()
     semana_passada = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
     c.execute('''SELECT categorias.nome, SUM(despesas.valor), categorias.limite
@@ -117,21 +117,21 @@ def get_despesas_semana():
     return result
 
 def update_categoria(cat_id,novo_nome,novo_limite):
-    conn = sqlite3.connect("gastos.db")
+    conn = sqlite3.connect(DB)
     cur = conn.cursor()
     cur.execute("UPDATE categorias SET nome = ?, limite = ? WHERE id = ?", (novo_nome, novo_limite, cat_id))
     conn.commit()
     conn.close()
 
 def delete_categoria(cat_id):
-    conn = sqlite3.connect("gastos.db")
+    conn = sqlite3.connect(DB)
     cur = conn.cursor()
     cur.execute("DELETE FROM categorias WHERE id = ?", (cat_id,))
     conn.commit()
     conn.close()
 
 def add_categoria(nome, limite):
-    conn = sqlite3.connect("gastos.db")
+    conn = sqlite3.connect(DB)
     cursor = conn.cursor()
     cursor.execute("INSERT INTO categorias (nome, limite) VALUES (?, ?)", (nome, limite))
     conn.commit()
