@@ -3,3 +3,4 @@ schedule
 python-telegram-bot
 matplotlib
 pandas
+plotly

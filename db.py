@@ -22,6 +22,15 @@ def init_db():
     conn.commit()
     conn.close()
 
+def get_despesas():
+    with sqlite3.connect("gastos.db") as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT d.id, c.nome, d.valor, d.data
+            FROM despesas d
+            JOIN categorias c ON d.categoria_id = c.id
+        """)
+        return cursor.fetchall()
 
 def get_categorias():
     conn = sqlite3.connect(DB)

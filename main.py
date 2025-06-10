@@ -1,9 +1,11 @@
 from reactpy import component, html, run, use_state, use_effect
 from reactpy.backend.fastapi import configure
 from fastapi import FastAPI
-from db import get_categorias, add_despesa
+from db import get_categorias, add_despesa, get_despesas
 from db import update_categoria, delete_categoria
-from datetime import datetime
+from datetime import datetime, date
+from collections import defaultdict
+import plotly.graph_objs as go
 import uvicorn
 
 app = FastAPI()
@@ -22,8 +24,48 @@ def Menu(on_select):
         html.button({"onclick": lambda *_: on_select("adicionar")}, "Adicionar Gasto"),
         html.button({"onclick": lambda *_: on_select("editar")}, "Editar Categorias"),
         html.button({"onclick": lambda *_: on_select("relatorios")}, "Relatórios"),
+        html.button({"onClick": lambda *_: on_select("semana")}, "Gastos da Semana")
     )
 
+@component
+def GastosDaSemana():
+    despesas, set_despesas = use_state([])
+    total, set_total = use_state(0.0)
+
+    @use_effect
+    def carregar():
+        dados = get_despesas()
+        set_despesas(dados)
+        set_total(sum([d[2] for d in dados]))
+        return
+
+    def filtrar_por_semana(despesas):
+        hoje = datetime.today()
+        semana_atual = hoje.isocalendar()[1]
+        return [d for d in despesas if date.fromisoformat(d[3]).isocalendar()[1] == semana_atual]
+
+    return html.div(
+        html.h2("🗓️ Gastos da Semana"),
+        html.table(
+            {"border": "1", "cellPadding": "5"},
+            html.thead(
+                html.tr(
+                    html.th("Categoria"),
+                    html.th("Valor"),
+                    html.th("Data")
+                )
+            ),
+            html.tbody([
+                html.tr(
+                    html.td(cat),
+                    html.td(f"R$ {valor:.2f}"),
+                    html.td(data)
+                )
+                for _, cat, valor, data in filtrar_por_semana(despesas)
+            ])
+        ),
+        html.h3(f"Total Geral: R$ {total:.2f}")
+    )
 
 @component
 def AdicionarGasto():
@@ -179,18 +221,150 @@ def EditarCategorias():
     )
 
 @component
+def RelatorioGastos():
+    despesas, set_despesas = use_state([])
+    total, set_total = use_state(0.0)
+
+    def carregar_despesas():
+        try:
+            dados = get_despesas()  # (id, categoria_nome, valor, data)
+            set_despesas(dados)
+            set_total(sum([d[2] for d in dados]))
+        except Exception as e:
+            print("❌ Erro ao carregar despesas:", e)
+
+    @use_effect
+    def on_mount():
+        carregar_despesas()
+        return
+
+    return html.div(
+        html.h2("📊 Relatório de Gastos"),
+        html.table(
+            {"border": "1", "cellPadding": "5"},
+            html.thead(
+                html.tr(
+                    html.th("Categoria"),
+                    html.th("Valor"),
+                    html.th("Data")
+                )
+            ),
+            html.tbody(
+                [
+                    html.tr(
+                        html.td(cat),
+                        html.td(f"R$ {valor:.2f}"),
+                        html.td(data)
+                    ) for _, cat, valor, data in despesas
+                ]
+            )
+        ),
+        html.h3(f"Total Geral: R$ {total:.2f}")
+    )
+
+@component
+def Dashboard():
+    despesas, set_despesas = use_state([])
+
+    @use_effect
+    def on_mount():
+        set_despesas(get_despesas())
+        return
+
+    def gerar_plot(fig):
+        plot_html = fig.to_html(include_plotlyjs='cdn', full_html=False)
+        return html.iframe({
+            "srcDoc": plot_html,
+            "width": "100%",
+            "height": "500px",
+            "style": {"border": "none"}
+        })
+
+    def filtrar_despesas_por_periodo(despesas, filtro):
+        hoje = datetime.today()
+        resultado = []
+
+        for desp in despesas:
+            _, categoria, valor, data_str = desp
+            data = date.fromisoformat(data_str)
+            if filtro(data, hoje):
+                resultado.append((categoria, valor, data))
+        return resultado
+
+    def total_por_categoria(despesas_filtradas):
+        totais = defaultdict(float)
+        for categoria, valor, _ in despesas_filtradas:
+            totais[categoria] += valor
+        return totais
+
+    hoje = datetime.today()
+
+    # --- Semana Atual ---
+    semana_atual = hoje.isocalendar()[1]
+    semana_passada = semana_atual - 1
+    dados_semana = filtrar_despesas_por_periodo(despesas, lambda d, h: d.isocalendar()[1] == semana_atual and d.year == h.year)
+    totais_semana = total_por_categoria(dados_semana)
+
+    # --- Semana Passada ---
+    dados_semana_passada = filtrar_despesas_por_periodo(despesas, lambda d, h: d.isocalendar()[1] == semana_passada and d.year == h.year)
+    totais_semana_passada = total_por_categoria(dados_semana_passada)
+
+    # --- Mês Atual ---
+    dados_mes = filtrar_despesas_por_periodo(despesas, lambda d, h: d.month == h.month and d.year == h.year)
+    totais_mes = total_por_categoria(dados_mes)
+
+    # --- Mês Passado ---
+    mes_passado = hoje.month - 1 if hoje.month > 1 else 12
+    ano_ref = hoje.year if hoje.month > 1 else hoje.year - 1
+    dados_mes_passado = filtrar_despesas_por_periodo(despesas, lambda d, h: d.month == mes_passado and d.year == ano_ref)
+    totais_mes_passado = total_por_categoria(dados_mes_passado)
+
+    # --- Ano Atual ---
+    dados_ano = filtrar_despesas_por_periodo(despesas, lambda d, h: d.year == h.year)
+    totais_ano = total_por_categoria(dados_ano)
+
+    return html.div(
+        html.h2("📊 Dashboard"),
+
+        html.h3("1. Gastos por Categoria - Semana Atual (Pizza)"),
+        gerar_plot(go.Figure(data=[go.Pie(
+            labels=list(totais_semana.keys()),
+            values=list(totais_semana.values())
+        )])),
+
+        html.h3("2. Comparativo: Semana Atual x Semana Passada"),
+        gerar_plot(go.Figure(data=[
+            go.Bar(name='Semana Atual', x=list(totais_semana.keys()), y=list(totais_semana.values())),
+            go.Bar(name='Semana Passada', x=list(totais_semana_passada.keys()), y=[totais_semana_passada.get(k, 0) for k in totais_semana.keys()])
+        ]).update_layout(barmode='group')),
+
+        html.h3("3. Comparativo: Mês Atual x Mês Passado"),
+        gerar_plot(go.Figure(data=[
+            go.Bar(name='Mês Atual', x=list(totais_mes.keys()), y=list(totais_mes.values())),
+            go.Bar(name='Mês Passado', x=list(totais_mes_passado.keys()), y=[totais_mes_passado.get(k, 0) for k in totais_mes.keys()])
+        ]).update_layout(barmode='group')),
+
+        html.h3("4. Total por Categoria no Ano"),
+        gerar_plot(go.Figure(data=[
+            go.Bar(x=list(totais_ano.keys()), y=list(totais_ano.values()))
+        ]))
+    )
+
+@component
 def App():
-    page, set_page = use_state("dashboard")
+    page, set_page = use_state("adicionar")
 
     def render_page():
         if page == "dashboard":
-            return html.h2("📊 Dashboard - Em construção")
+            return Dashboard()
         elif page == "adicionar":
             return AdicionarGasto()
         elif page == "editar":
             return EditarCategorias()
         elif page == "relatorios":
-            return html.h2("Relatórios - Em construção")
+            return RelatorioGastos()
+        elif page == "semana":
+            return GastosDaSemana()
         return html.h2("Página não encontrada")
 
     return html.div(
@@ -203,4 +377,4 @@ def App():
 configure(app, App)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=10000)
+    uvicorn.run(app, host="0.0.0.0", port=10000)
