@@ -2,7 +2,7 @@ import sqlite3
 import pandas as pd
 from datetime import datetime, timedelta
 
-DB = "gastos.db"
+DB = "/app/gastos.db"
 
 def init_db():
     conn = sqlite3.connect(DB)
