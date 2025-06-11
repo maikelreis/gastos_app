@@ -1,4 +1,5 @@
 reactpy[fastapi]
+uvicorn[standard]
 schedule
 python-telegram-bot
 matplotlib

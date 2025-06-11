@@ -8,7 +8,7 @@ from collections import defaultdict
 import plotly.graph_objs as go
 import uvicorn
 
-app = FastAPI()
+app_fastapi = FastAPI()
 
 @component
 def Menu(on_select):
@@ -374,7 +374,7 @@ def App():
         render_page()
     )
 
-configure(app, App)
+configure(app_fastapi, App)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=10000)
+    uvicorn.run(app_fastapi, host="127.0.0.1", port=10000)
