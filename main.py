@@ -223,44 +223,81 @@ def EditarCategorias():
 @component
 def RelatorioGastos():
     despesas, set_despesas = use_state([])
-    total, set_total = use_state(0.0)
-
-    def carregar_despesas():
-        try:
-            dados = get_despesas()  # (id, categoria_nome, valor, data)
-            set_despesas(dados)
-            set_total(sum([d[2] for d in dados]))
-        except Exception as e:
-            print("❌ Erro ao carregar despesas:", e)
+    categorias, set_categorias = use_state([])
+    mes_selecionado, set_mes_selecionado = use_state(date.today().month)
 
     @use_effect
     def on_mount():
-        carregar_despesas()
+        set_despesas(get_despesas())
+        set_categorias(get_categorias())
         return
 
-    return html.div(
-        html.h2("📊 Relatório de Gastos"),
-        html.table(
-            {"border": "1", "cellPadding": "5"},
-            html.thead(
-                html.tr(
-                    html.th("Categoria"),
-                    html.th("Valor"),
-                    html.th("Data")
+    def filtrar_por_mes(despesas, mes):
+        return [d for d in despesas if date.fromisoformat(d[3]).month == mes]
+
+    def gerar_relatorio():
+        despesas_filtradas = filtrar_por_mes(despesas, mes_selecionado)
+
+        # Mapeando por nome da categoria
+        categorias_dict = {
+            cat[1]: cat[2]  # "Alimentação": 1000.0
+            for cat in categorias
+        }
+
+        total_por_categoria = defaultdict(float)
+
+        for _, cat_nome, valor, _ in despesas_filtradas:
+            total_por_categoria[cat_nome] += valor
+
+        linhas = []
+        total_gastos = 0.0
+        total_limites = 0.0
+
+        for cat_nome, gasto in total_por_categoria.items():
+            limite = categorias_dict.get(cat_nome, 0.0)
+            diferenca = limite - gasto
+            total_gastos += gasto
+            total_limites += limite
+
+            linhas.append(html.tr(
+                html.td(cat_nome),
+                html.td(f"R$ {gasto:.2f}"),
+                html.td(f"R$ {limite:.2f}"),
+                html.td(f"R$ {diferenca:.2f}")
+            ))
+
+        return html.div(
+            html.h3("Relatório de Gastos por Categoria"),
+            html.div(
+                html.label("Selecionar Mês: "),
+                html.select(
+                    {
+                        "value": str(mes_selecionado),
+                        "onChange": lambda e: set_mes_selecionado(int(e["target"]["value"]))
+                    },
+                    *[html.option({"value": str(i)}, date(2025, i, 1).strftime("%B")) for i in range(1, 13)]
                 )
             ),
-            html.tbody(
-                [
+            html.table(
+                {"border": "1", "cellPadding": "5", "style": {"marginTop": "15px"}},
+                html.thead(
                     html.tr(
-                        html.td(cat),
-                        html.td(f"R$ {valor:.2f}"),
-                        html.td(data)
-                    ) for _, cat, valor, data in despesas
-                ]
+                        html.th("Categoria"),
+                        html.th("Gasto Total"),
+                        html.th("Limite"),
+                        html.th("Diferença")
+                    )
+                ),
+                html.tbody(linhas)
+            ),
+            html.div(
+                html.p(f"💰 Total de Gastos: R$ {total_gastos:.2f}"),
+                html.p(f"📈 Total de Limites: R$ {total_limites:.2f}"),
+                html.p(f"💡 Saldo Disponível: R$ {total_limites - total_gastos:.2f}")
             )
-        ),
-        html.h3(f"Total Geral: R$ {total:.2f}")
-    )
+        )
+
+    return gerar_relatorio()
 
 @component
 def Dashboard():
@@ -377,4 +414,4 @@ def App():
 configure(app_fastapi, App)
 
 if __name__ == "__main__":
-    uvicorn.run(app_fastapi, host="0.0.0.0", port=10000)
+    uvicorn.run(app_fastapi, host="127.0.0.1", port=10000)
