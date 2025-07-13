@@ -24,7 +24,8 @@ def Menu(on_select):
         html.button({"onclick": lambda *_: on_select("adicionar")}, "Adicionar Gasto"),
         html.button({"onclick": lambda *_: on_select("editar")}, "Editar Categorias"),
         html.button({"onclick": lambda *_: on_select("relatorios")}, "Relatórios"),
-        html.button({"onClick": lambda *_: on_select("semana")}, "Gastos da Semana")
+        html.button({"onClick": lambda *_: on_select("semana")}, "Gastos da Semana"),
+        html.button({"onClick": lambda *_: on_select("mes")}, "Gastos do Mês")
     )
 
 @component
@@ -32,18 +33,20 @@ def GastosDaSemana():
     despesas, set_despesas = use_state([])
     total, set_total = use_state(0.0)
 
-    @use_effect
-    def carregar():
-        dados = get_despesas()
-        set_despesas(dados)
-        set_total(sum([d[2] for d in dados]))
-        return
-
     def filtrar_por_semana(despesas):
         hoje = datetime.today()
         semana_atual = hoje.isocalendar()[1]
         return [d for d in despesas if date.fromisoformat(d[3]).isocalendar()[1] == semana_atual]
 
+    @use_effect
+    def carregar():
+        dados = get_despesas()
+        despesas_filtradas = filtrar_por_semana(dados)
+        set_despesas(despesas_filtradas)
+        set_total(sum([d[2] for d in despesas_filtradas]))
+        return  
+
+    
     return html.div(
         html.h2("🗓️ Gastos da Semana"),
         html.table(
@@ -64,7 +67,54 @@ def GastosDaSemana():
                 for _, cat, valor, data in filtrar_por_semana(despesas)
             ])
         ),
-        html.h3(f"Total Geral: R$ {total:.2f}")
+        html.h3(f"Total Semana: R$ {total:.2f}")
+    )
+
+@component
+def GastosDoMes():
+    despesas, set_despesas = use_state([])
+    total, set_total = use_state(0.0)
+
+    def filtrar_por_periodo(despesas):
+        hoje = datetime.today().date()
+        if hoje.month == 1:
+            inicio = date(hoje.year - 1, 12, 24)
+        else:
+            inicio = date(hoje.year, hoje.month - 1, 24)
+
+        return [d for d in despesas if inicio <= date.fromisoformat(d[3]) <= hoje]
+    
+    @use_effect
+    def carregar():
+        dados = get_despesas()
+        despesas_filtradas = filtrar_por_periodo(dados)
+        set_despesas(despesas_filtradas)
+        set_total(sum([d[2] for d in despesas_filtradas]))
+        return
+
+    
+
+    return html.div(
+        html.h2("📆 Gastos do Mês (desde dia 24)"),
+        html.table(
+            {"border": "1", "cellPadding": "5"},
+            html.thead(
+                html.tr(
+                    html.th("Categoria"),
+                    html.th("Valor"),
+                    html.th("Data")
+                )
+            ),
+            html.tbody([
+                html.tr(
+                    html.td(cat),
+                    html.td(f"R$ {valor:.2f}"),
+                    html.td(data)
+                )
+                for _, cat, valor, data in despesas
+            ])
+        ),
+        html.h3(f"Total Mês: R$ {total:.2f}")
     )
 
 @component
@@ -402,6 +452,8 @@ def App():
             return RelatorioGastos()
         elif page == "semana":
             return GastosDaSemana()
+        elif page == "mes":
+            return GastosDoMes()
         return html.h2("Página não encontrada")
 
     return html.div(
@@ -414,4 +466,4 @@ def App():
 configure(app_fastapi, App)
 
 if __name__ == "__main__":
-    uvicorn.run(app_fastapi, host="0.0.0.0", port=10000)
+    uvicorn.run(app_fastapi, host="127.0.0.1", port=10000)
