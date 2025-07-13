@@ -141,7 +141,7 @@ def AdicionarGasto():
         return
 
     def salvar(event=None):
-        if not selected_cat or not valor:
+        if not selected_cat or not valor or not data:
             set_mensagem("⚠️ Preencha todos os campos!")
             return
         add_despesa(int(selected_cat),float(valor), data)
