@@ -283,7 +283,18 @@ def RelatorioGastos():
         return
 
     def filtrar_por_mes(despesas, mes):
-        return [d for d in despesas if date.fromisoformat(d[3]).month == mes]
+        ano = date.today().year
+
+        # Início: dia 24 do mês anterior
+        if mes == 1:
+            inicio = date(ano - 1, 12, 24)
+        else:
+            inicio = date(ano, mes - 1, 24)
+
+        # Fim: dia 24 do mês selecionado
+        fim = date(ano, mes, 24)
+
+        return [d for d in despesas if inicio <= date.fromisoformat(d[3]) < fim]
 
     def gerar_relatorio():
         despesas_filtradas = filtrar_por_mes(despesas, mes_selecionado)
